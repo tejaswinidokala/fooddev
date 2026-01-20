@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pro Food Delivery System - Neighborhood Edition</title>
+    <style>
+        /* Core Styles & Transitions */
+        body { font-family: 'Segoe UI', sans-serif; transition: 0.3s; margin: 0; padding: 20px; background: #f4f7f6; }
+        .dark-mode { background: #1a1a1a; color: white; }
+        .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; max-width: 450px; margin: auto; }
+        .dark-mode .box { background: #333; color: white; }
+        .hidden { display: none; }
+        button { padding: 10px 18px; cursor: pointer; border-radius: 6px; border: none; font-weight: bold; transition: 0.1s; margin: 5px; }
+        button:active { transform: scale(0.95); }
+        input, select { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .section { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Custom Toast Notification Styles */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+        }
+
+        .toast {
+            background: #333;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+            animation: slideUp 0.4s ease-out, fadeOut 0.4s ease-in 2.5s forwards;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .toast.success { background: #2e7d32; }
+        .toast.error { background: #d32f2f; }
+        .toast.info { background: #0277bd; }
+
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /* Feature Styles */
+        .coupon-applied { color: #2e7d32; font-weight: bold; font-size: 14px; }
+        .eco-box { border: 1px dashed #2e7d32; padding: 10px; border-radius: 8px; background: #f1f8e9; margin: 10px 0; }
+        .budget-box { background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #2196f3; margin-bottom: 20px; text-align: center; }
+        #budgetResult { transition: 0.3s; height: 20px; font-weight: bold; }
+        /* Crowd Pool Styles */        
+        .pool-active { background: #f3e5f5; border: 2px solid #9c27b0; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; color: #000; }
+        .pool-unlocked { background: #e8f5e9; border: 2px solid #2e7d32; color: #1b5e20; }
+        .pool-timer { font-weight: bold; background: #9c27b0; color: white; padding: 10px; border-radius: 50px; min-width: 60px; text-align: center; }
+        #rewardGame { margin-top: 20px; padding: 15px; border: 2px dashed #ff9800; border-radius: 10px; background: #fffde7; text-align: center; color: #000; }
+        .add { background: #4caf50; color: white; }
+        .remove-btn { background: #f44336; color: white; padding: 5px 10px; }
+        .admin-nav-btn { background: #673ab7 !important; color: white !important; }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<header>
+    <h1 style="text-align: center;">Online Food Delivery System</h1>
+    <button onclick="toggleDarkMode()" style="float:right; margin-top:-50px;">🌗 Theme</button>
+    <nav class="hidden" id="navbar" style="text-align: center; margin-bottom: 20px;">
+        <button onclick="showSection('menu')">Menu</button>
+        <button onclick="showSection('cart')">Cart</button>
+        <button onclick="showSection('tracking')">Tracking</button>
+        <button id="adminNavBtn" class="hidden admin-nav-btn" onclick="showSection('admin')">Admin Panel</button>
+        <button onclick="logout()">Logout</button>
+    </nav>
+</header>
+
+<div class="section" id="login">
+    <div class="box">
+        <h2>Welcome Back</h2>
+        <input type="text" id="userInput" placeholder="Username">
+        <input type="password" id="passInput" placeholder="Password"><br><br>
+        <button class="add" onclick="login()">User Login</button>
+        <button onclick="adminLogin()">Admin Login</button>
+        <p id="loginMsg" style="font-size:13px; margin-top:10px;"></p>
+        <p style="cursor:pointer;color:#2196f3;" onclick="showSignup()">New user? Create account</p>
+    </div>
+</div>
+
+<div class="section hidden" id="signup">
+    <div class="box">
+        <h2>Create Account</h2>
+        <input type="text" id="signupUser" placeholder="Username">
+        <input type="password" id="signupPass" placeholder="Password"><br><br>
+        <button class="add" onclick="signup()">Sign Up</button>
+        <p id="signupMsg" style="font-size:13px; margin-top:10px;"></p>
+        <p style="cursor:pointer;color:#2196f3;" onclick="showLogin()">Already have an account? Login</p>
+    </div>
+</div>
+
+<div class="section hidden" id="menu">
+    <div id="smartSuggestion" class="budget-box" style="background: #fff3e0; border: 1px solid #ff9800;">
+        <h3 style="margin:0;">✨ Recommended for You</h3>
+        <p id="suggestionText">Loading your best match...</p>
+    </div>
+    <div id="crowdPoolBox" class="pool-active">
+        <div>
+            <h3 style="margin:0;">👥 Neighborhood Pool</h3>
+            <p id="poolStatusText" style="margin:5px 0 0 0; font-size: 13px;"><strong>2 people</strong> nearby! Order to unlock <strong>20% OFF</strong>.</p>
+        </div>
+        <div id="poolTimer" class="pool-timer">05:00</div>
+    </div>
+
+    <div class="budget-box">
+        <h3>💰 Budget Meal Finder</h3>
+        <input type="number" id="budgetInput" placeholder="Enter amount" style="width:50%;">
+        <button onclick="findBestMeal()" style="background:#2196f3; color:white;">Suggest</button>
+        <p id="budgetResult"></p>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 10px;">
+        <button onclick="filterByCategory('all')">All Items</button>
+        <button onclick="filterByCategory('veg')" style="color:green; border: 1px solid green;">Only Veg 🟢</button>
+        <button onclick="filterByCategory('non-veg')" style="color:red; border: 1px solid red;">Only Non-Veg 🔴</button>
+    </div>
+    <input type="text" id="menuSearch" onkeyup="filterMenu()" placeholder="🔍 Search for a dish..." style="width:100%; box-sizing: border-box; padding:10px; margin-bottom:10px;">
+    
+    <table id="menuTable">
+        <thead>
+            <tr><th>Type</th><th>Dish</th><th>Price</th><th>Action</th></tr>
+        </thead>
+        <tbody id="menuBody"></tbody>
+    </table>
+</div>
+
+<div class="section hidden" id="cart">
+    <div class="box" style="max-width: 550px;">
+        <h2>Your Cart</h2>
+        <ul id="cartItems" style="list-style:none; padding:0; text-align: left;"></ul>
+        <div class="eco-box">
+            <input type="checkbox" id="ecoMode" onchange="updateCart()"> 
+            <label for="ecoMode">🌿 <strong>Eco-Mode:</strong> No plastic cutlery (-₹5)</label>
+        </div>
+        <div id="couponArea" style="background:#f0f0f0; padding:10px; border-radius:8px; margin:10px 0;">
+            <input type="text" id="couponInput" placeholder="SAVE50" style="width:60%;">
+            <button onclick="applyCoupon()">Apply</button>
+            <p id="couponMsg" style="margin:5px 0 0 0; font-size:12px;"></p>
+        </div>
+        <p><strong>Total Amount:</strong> ₹<span id="total">0</span></p>
+        <button class="add" style="width:100%;" onclick="placeOrder()">Place Order</button>
+        <button onclick="clearCart()" style="width:100%; margin-top:10px;">Clear Cart</button>
+    </div>
+</div>
+
+<div class="section hidden" id="tracking">
+    <div class="box">
+        <h2>Live Tracking</h2>
+        <p>🕒 ETA: <strong><span id="etaText">25</span> mins</strong></p>
+        <div style="background:#eee; height:12px; border-radius:6px; margin:20px 0; overflow:hidden;">
+            <div id="progress-bar" style="background:#4caf50; width:0%; height:100%; transition: 0.5s;"></div>
+        </div>
+        <p id="status" style="font-weight:bold; color:#ff5722;">Initializing...</p>
+        <div id="rewardGame" class="hidden">
+            <h3>🎁 Order Delivered!</h3>
+            <div id="wheelResult" style="font-size: 20px; font-weight: bold; color: #e65100; margin:10px;">? ? ?</div>
+            <button onclick="spinWheel()" id="spinBtn" style="background:#ff9800; color:white;">Spin for Reward</button>
+        </div>
+        <div id="receipt" style="margin-top:20px; text-align:left; border-top:1px dashed #ccc; padding-top:15px; display:none;">
+            <h4>Order Receipt</h4>
+            <div id="receiptItems"></div>
+            <p><strong>Grand Total:</strong> ₹<span id="receiptTotal">0</span></p>
+        </div>
+    </div>
+</div>
+
+<div class="section hidden" id="admin">
+    <div class="box" style="max-width: 550px;">
+        <h2>Admin Dashboard</h2>
+        <div style="display:flex; justify-content: space-around; background:#ffefeb; padding:15px; border-radius:8px;">
+            <div><h4>Sales</h4><p id="adminRevenue">₹0</p></div>
+            <div><h4>Orders</h4><p id="adminOrderCount">0</p></div>
+        </div>
+        <h3>Add New Item</h3>
+        <input type="text" id="newItemName" placeholder="Dish Name">
+        <input type="number" id="newItemPrice" placeholder="Price">
+        <select id="newItemCategory">
+            <option value="veg">Veg</option>
+            <option value="non-veg">Non-Veg</option>
+        </select>
+        <button class="add" onclick="addNewItem()">Add Item</button>
+        <table id="adminInventoryTable"></table>
+        <br>
+        <button onclick="logout()">Logout</button>
+        <button onclick="resetSystem()" style="background:#ddd; font-size: 10px;">Factory Reset</button>
+    </div>
+</div>
+
+<script>
+// --- CORE DATA ---
+let defaultMenu = [
+    { name: 'Paneer Tikka', price: 210, type: 'veg' },
+    { name: 'Veg Maharaja Burger', price: 159, type: 'veg' },
+    { name: 'Dal Makhani', price: 180, type: 'veg' },
+    { name: 'Margherita Pizza', price: 299, type: 'veg' },
+    { name: 'Veg Hakka Noodles', price: 140, type: 'veg' },
+    { name: 'Mixed Veg Salad', price: 120, type: 'veg' },
+    { name: 'Paneer Butter Masala', price: 240, type: 'veg' },
+    { name: 'Veg Biryani', price: 190, type: 'veg' },
+    { name: 'Chicken Biryani', price: 249, type: 'non-veg' },
+    { name: 'Butter Chicken', price: 320, type: 'non-veg' },
+    { name: 'Mutton Seekh Kebab', price: 350, type: 'non-veg' },
+    { name: 'Pepperoni Pizza', price: 450, type: 'non-veg' },
+    { name: 'Fish & Chips', price: 280, type: 'non-veg' },
+    { name: 'Egg Fried Rice', price: 160, type: 'non-veg' },
+    { name: 'Chicken Lollipop', price: 220, type: 'non-veg' },
+    { name: 'Grilled Fish', price: 380, type: 'non-veg' }
+];
+
+let menuItems = JSON.parse(localStorage.getItem('myFoodMenu')) || defaultMenu;
+let totalRevenue = parseFloat(localStorage.getItem('myRevenue')) || 0;
+let totalOrders = parseInt(localStorage.getItem('myOrders')) || 0;
+let cart = [];
+let total = 0;
+let discount = 0;
+let userRole = 'guest';
+let currentFilter = 'all';
+let poolUnlocked = false;
+let poolCount = 2;
+let poolTimerInterval = null;
+
+// --- NOTIFICATION ENGINE ---
+function showNotice(msg, type = 'info') {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    let icon = type === 'success' ? "✅" : (type === 'error' ? "⚠️" : "🔔");
+    toast.innerHTML = `<span>${icon}</span> ${msg}`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 3000);
+}
+
+// --- AUTH ---
+function showSignup() { showSection("signup"); }
+function showLogin() { showSection("login"); }
+
+function signup() {
+    const user = document.getElementById("signupUser").value.trim();
+    const pass = document.getElementById("signupPass").value.trim();
+    if (!user || !pass) return showNotice("Please fill all fields", "error");
+    let users = JSON.parse(localStorage.getItem("users")) || {};
+    if (users[user]) return showNotice("Username exists", "error");
+    users[user] = pass;
+    localStorage.setItem("users", JSON.stringify(users));
+    showNotice("Account Created!", "success");
+    setTimeout(showLogin, 1000);
+}
+
+function login() {
+    const user = document.getElementById("userInput").value.trim();
+    const pass = document.getElementById("passInput").value.trim();
+    let users = JSON.parse(localStorage.getItem("users")) || {};
+    if (!users[user] || users[user] !== pass) return showNotice("Invalid Credentials", "error");
+    userRole = "user";
+    document.getElementById("navbar").classList.remove("hidden");
+    document.getElementById("adminNavBtn").classList.add("hidden");
+    showNotice("Welcome back!", "success");
+    renderUserMenu();
+    startPoolTimer();
+    getSmartSuggestion();
+    showSection("menu");
+}
+
+function adminLogin() {
+    const pass = document.getElementById("passInput").value.trim();
+    if (pass !== "admin123") return showNotice("Wrong Admin Key", "error");
+    userRole = "admin";
+    document.getElementById("adminNavBtn").classList.remove("hidden");
+    document.getElementById("navbar").classList.remove("hidden");
+    showNotice("Admin Mode Active", "success");
+    updateAdminStats();
+    renderAdminInventory();
+    renderUserMenu();
+    showSection("admin");
+}
+
+// --- MENU ---
+function renderUserMenu() {
+    const tbody = document.getElementById("menuBody");
+    tbody.innerHTML = "";
+    menuItems.forEach(item => {
+        if (currentFilter === 'all' || item.type === currentFilter) {
+            tbody.innerHTML += `<tr>
+                <td>${item.type === 'veg' ? '🟢' : '🔴'}</td>
+                <td>${item.name}</td>
+                <td>₹${item.price}</td>
+                <td><button class="add" onclick="addToCart('${item.name}', ${item.price})">Add</button></td>
+            </tr>`;
+        }
+    });
+}
+
+function filterByCategory(cat) { currentFilter = cat; renderUserMenu(); }
+
+function filterMenu() {
+    let input = document.getElementById('menuSearch').value.toLowerCase();
+    let rows = document.querySelectorAll("#menuBody tr");
+    rows.forEach(row => {
+        let dishName = row.cells[1].textContent.toLowerCase();
+        row.style.display = dishName.includes(input) ? "" : "none";
+    });
+}
+
+function getSmartSuggestion() {
+    const hour = new Date().getHours();
+    let dish = hour < 11 ? "Mixed Veg Salad" : (hour < 16 ? "Chicken Biryani" : "Butter Chicken");
+    document.getElementById("suggestionText").innerHTML = `Recommended: <strong>${dish}</strong>. <button class="add" onclick="quickAdd('${dish}')">Add</button>`;
+}
+function quickAdd(name) { 
+    const item = menuItems.find(m => m.name === name);
+    if(item) addToCart(item.name, item.price);
+}
+
+// --- CART ---
+function addToCart(name, price) {
+    cart.push({ name, price });
+    total += price;
+    if (!poolUnlocked) {
+        poolCount++;
+        if (poolCount >= 4) {
+            poolUnlocked = true;
+            document.getElementById("crowdPoolBox").classList.add("pool-unlocked");
+            document.getElementById("poolStatusText").innerHTML = "✅ <strong>Pool Unlocked!</strong> 20% Applied.";
+        }
+    }
+    showNotice(`${name} added!`, "success");
+    updateCart();
+}
+
+function updateCart() {
+    const list = document.getElementById("cartItems");
+    const ecoD = document.getElementById("ecoMode").checked ? 5 : 0;
+    const poolD = poolUnlocked ? (total * 0.20) : 0;
+    list.innerHTML = cart.map((item, i) => `<li>${item.name} - ₹${item.price} <button class="remove-btn" onclick="removeFromCart(${i})">x</button></li>`).join('');
+    document.getElementById("total").textContent = Math.max(0, total - discount - ecoD - poolD).toFixed(2);
+}
+
+function removeFromCart(i) {
+    total -= cart[i].price;
+    cart.splice(i, 1);
+    updateCart();
+}
+
+function applyCoupon() {
+    let code = document.getElementById("couponInput").value.toUpperCase();
+    if (code === "SAVE50") {
+        discount = total * 0.5;
+        showNotice("50% Discount Applied!", "success");
+    } else {
+        discount = 0;
+        showNotice("Invalid Code", "error");
+    }
+    updateCart();
+}
+
+function clearCart() { cart = []; total = 0; discount = 0; updateCart(); showNotice("Cart Cleared", "info"); }
+
+function placeOrder() {
+    if (cart.length === 0) return showNotice("Cart is empty", "error");
+    const ecoD = document.getElementById("ecoMode").checked ? 5 : 0;
+    const poolD = poolUnlocked ? (total * 0.20) : 0;
+    let final = total - discount - ecoD - poolD;
+    totalRevenue += final;
+    totalOrders++;
+    localStorage.setItem('myRevenue', totalRevenue);
+    localStorage.setItem('myOrders', totalOrders);
+    generateReceipt(ecoD, poolD);
+    showSection("tracking");
+    startTracking();
+}
+
+function generateReceipt(ecoD, poolD) {
+    const itemsDiv = document.getElementById("receiptItems");
+    document.getElementById("receipt").style.display = "block";
+    itemsDiv.innerHTML = cart.map(i => `<p>• ${i.name} - ₹${i.price}</p>`).join('');
+    document.getElementById("receiptTotal").textContent = (total - discount - ecoD - poolD).toFixed(2);
+}
+
+function startTracking() {
+    const statuses = ["Accepted 🛒", "Cooking 👨‍🍳", "On the way 🛵", "Delivered! 😋"];
+    let i = 0;
+    const interval = setInterval(() => {
+        document.getElementById("status").textContent = statuses[i];
+        document.getElementById("progress-bar").style.width = ((i + 1) * 25) + "%";
+        if (i === 3) { clearInterval(interval); document.getElementById("rewardGame").classList.remove("hidden"); }
+        i++;
+    }, 2000);
+}
+
+function spinWheel() {
+    const win = ["FREE COKE 🥤", "₹50 CASHBACK 💸"][Math.floor(Math.random()*2)];
+    document.getElementById("wheelResult").innerText = "WON: " + win;
+    document.getElementById("spinBtn").disabled = true;
+    showNotice("Reward Unlocked!", "success");
+}
+
+// --- ADMIN ---
+function updateAdminStats() {
+    document.getElementById("adminRevenue").textContent = "₹" + totalRevenue.toFixed(2);
+    document.getElementById("adminOrderCount").textContent = totalOrders;
+}
+
+function renderAdminInventory() {
+    const table = document.getElementById("adminInventoryTable");
+    table.innerHTML = `<tr><th>Item</th><th>Price</th><th>Action</th></tr>`;
+    menuItems.forEach((item, index) => {
+        table.innerHTML += `<tr><td>${item.name}</td><td>₹${item.price}</td><td><button class="remove-btn" onclick="deleteMenuItem(${index})">Delete</button></td></tr>`;
+    });
+}
+
+function addNewItem() {
+    const name = document.getElementById("newItemName").value;
+    const price = parseInt(document.getElementById("newItemPrice").value);
+    const type = document.getElementById("newItemCategory").value;
+    if (name && price) {
+        menuItems.push({ name, price, type });
+        localStorage.setItem('myFoodMenu', JSON.stringify(menuItems));
+        renderAdminInventory(); renderUserMenu();
+        showNotice("Item added to menu", "success");
+    }
+}
+
+function deleteMenuItem(index) {
+    menuItems.splice(index, 1);
+    localStorage.setItem('myFoodMenu', JSON.stringify(menuItems));
+    renderAdminInventory(); renderUserMenu();
+    showNotice("Item Deleted", "info");
+}
+
+function resetSystem() {
+    // Clear relevant localStorage items
+    localStorage.removeItem('myFoodMenu'); // Remove custom menu
+    localStorage.removeItem('myRevenue');
+    localStorage.removeItem('myOrders');
+    localStorage.removeItem('users');
+
+    // Reset in-memory variables
+    menuItems = [...defaultMenu]; // Reset menu to defaults
+    totalRevenue = 0;
+    totalOrders = 0;
+    cart = [];
+    total = 0;
+    discount = 0;
+    poolUnlocked = false;
+    poolCount = 2;
+
+    // Update UI
+    renderAdminInventory();
+    updateAdminStats();
+    renderUserMenu();
+
+    // Reset pool UI
+    document.getElementById("crowdPoolBox").classList.remove("pool-unlocked");
+    document.getElementById("poolStatusText").innerHTML = `<strong>${poolCount} people</strong> nearby! Order to unlock <strong>20% OFF</strong>.`;
+
+    showNotice("System Reset Successful", "info");
+}
+
+
+// --- UTILS ---
+function showSection(id) {
+    if (userRole === 'guest' && id !== 'login' && id !== 'signup') return showSection('login');
+    document.querySelectorAll(".section").forEach(sec => sec.classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
+}
+function startPoolTimer() {
+    let timeLeft = 300;
+    if (poolTimerInterval) clearInterval(poolTimerInterval);
+    poolTimerInterval = setInterval(() => {
+        if (timeLeft <= 0) return clearInterval(poolTimerInterval);
+        let min = Math.floor(timeLeft / 60);
+        let sec = timeLeft % 60;
+        document.getElementById("poolTimer").textContent = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        timeLeft--;
+    }, 1000);
+}
+function logout() { location.reload(); }
+function toggleDarkMode() { document.body.classList.toggle("dark-mode"); }
+function findBestMeal() {
+    let budget = parseInt(document.getElementById("budgetInput").value);
+    let affordable = menuItems.filter(item => item.price <= budget);
+    let res = document.getElementById("budgetResult");
+    if(!budget) return showNotice("Enter budget", "error");
+    if(affordable.length === 0) { res.innerText = "❌ No matches"; } 
+    else { 
+        let best = affordable.reduce((prev, curr) => (prev.price > curr.price) ? prev : curr);
+        res.innerHTML = `⭐ Try <b>${best.name}</b> (₹${best.price})`;
+    }
+}
+</script>
+</body>
+</html>
