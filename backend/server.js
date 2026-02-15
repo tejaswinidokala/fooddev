@@ -1,63 +1,103 @@
+// backend/server.js
 const express = require("express");
-const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 
 const app = express();
-const PORT = 5000;
-
 app.use(cors());
 app.use(bodyParser.json());
 
-/* ------------------ FAKE DATABASE ------------------ */
+const DATA_DIR = path.join(__dirname, "data");
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const MENU_FILE = path.join(DATA_DIR, "menu.json");
+const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 
-let menuItems = [
-    { id: 1, name: "Paneer Tikka", price: 210, type: "veg" },
-    { id: 2, name: "Veg Biryani", price: 190, type: "veg" },
-    { id: 3, name: "Chicken Biryani", price: 249, type: "non-veg" },
-    { id: 4, name: "Butter Chicken", price: 320, type: "non-veg" }
-];
+// --- Ensure data files exist ---
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, "{}");
+if (!fs.existsSync(MENU_FILE)) fs.writeFileSync(MENU_FILE, "[]");
+if (!fs.existsSync(ORDERS_FILE)) fs.writeFileSync(ORDERS_FILE, "[]");
 
-let orders = [];
+// --- Helper functions ---
+function readJSON(file) {
+    return JSON.parse(fs.readFileSync(file, "utf-8"));
+}
+function writeJSON(file, data) {
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
+}
 
-/* ------------------ ROUTES ------------------ */
+// --- Auth routes ---
+app.post("/api/signup", (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password)
+        return res.json({ success: false, message: "Fill all fields" });
 
-// Test
-app.get("/", (req, res) => {
-    res.send("Food Delivery Backend Running 🚀");
+    let users = readJSON(USERS_FILE);
+    if (users[username]) return res.json({ success: false, message: "Username exists" });
+
+    users[username] = password;
+    writeJSON(USERS_FILE, users);
+    res.json({ success: true, message: "Account created" });
 });
 
-// Get Menu
+app.post("/api/login", (req, res) => {
+    const { username, password } = req.body;
+    let users = readJSON(USERS_FILE);
+
+    if (!users[username] || users[username] !== password)
+        return res.json({ success: false, message: "Invalid credentials" });
+
+    res.json({ success: true, message: "Login successful" });
+});
+
+// --- Menu routes ---
 app.get("/api/menu", (req, res) => {
-    res.json(menuItems);
+    let menu = readJSON(MENU_FILE);
+    res.json(menu);
 });
 
-// Add new menu item (ADMIN)
-app.post("/api/menu", (req, res) => {
-    const item = { id: Date.now(), ...req.body };
-    menuItems.push(item);
-    res.json({ message: "Item added", item });
+app.post("/api/menu/add", (req, res) => {
+    const newItem = req.body; // {name, price, type, serves}
+    let menu = readJSON(MENU_FILE);
+    menu.push(newItem);
+    writeJSON(MENU_FILE, menu);
+    res.json({ success: true });
 });
 
-// Place Order
-app.post("/api/order", (req, res) => {
-    const order = {
-        id: Date.now(),
-        items: req.body.items,
-        total: req.body.total
-    };
+app.post("/api/menu/delete", (req, res) => {
+    const { index } = req.body;
+    let menu = readJSON(MENU_FILE);
+    menu.splice(index, 1);
+    writeJSON(MENU_FILE, menu);
+    res.json({ success: true });
+});
+
+// --- Orders ---
+app.post("/api/orders", (req, res) => {
+    const order = req.body;
+    let orders = readJSON(ORDERS_FILE);
     orders.push(order);
-    res.json({ message: "Order placed successfully", order });
+    writeJSON(ORDERS_FILE, orders);
+    res.json({ success: true });
 });
 
-// Admin stats
 app.get("/api/admin/stats", (req, res) => {
-    const revenue = orders.reduce((sum, o) => sum + o.total, 0);
+    const orders = readJSON(ORDERS_FILE);
+
+    const revenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const orderCount = orders.length;
+
     res.json({
-        totalOrders: orders.length,
-        totalRevenue: revenue
+        revenue,
+        orders: orderCount
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+
+// --- Serve frontend static files (optional) ---
+app.use("/", express.static(path.join(__dirname, "../frontend")));
+
+const PORT = 3000;
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

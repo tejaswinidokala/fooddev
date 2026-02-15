@@ -128,6 +128,20 @@
         <button onclick="findBestMeal()" style="background:#2196f3; color:white;">Suggest</button>
         <p id="budgetResult"></p>
     </div>
+    <div class="budget-box" style="background:#ede7f6; border:1px solid #673ab7;">
+    <h3>👥 Group Budget Meal Planner</h3>
+
+    <input type="number" id="groupBudget" placeholder="Total Group Budget (₹)" style="width:45%;">
+    <input type="number" id="groupMembers" placeholder="No. of Members" style="width:45%;">
+
+    <br>
+    <button onclick="findGroupMeals()" style="background:#673ab7; color:white;">
+        Plan Group Meals
+    </button>
+
+    <div id="groupResult" style="margin-top:10px; font-size:14px; text-align:left;"></div>
+</div>
+
 
     <div style="text-align: center; margin-bottom: 10px;">
         <button onclick="filterByCategory('all')">All Items</button>
@@ -161,6 +175,15 @@
         <button class="add" style="width:100%;" onclick="placeOrder()">Place Order</button>
         <button onclick="clearCart()" style="width:100%; margin-top:10px;">Clear Cart</button>
     </div>
+    <div style="margin: 15px 0; text-align: left;">
+    <label>🕒 <strong>Delivery Time:</strong></label>
+    <select id="deliveryTime" style="width: 100%;">
+        <option value="now">As soon as possible (ASAP)</option>
+        <option value="19:00">07:00 PM</option>
+        <option value="20:00">08:00 PM</option>
+        <option value="21:00">09:00 PM</option>
+    </select>
+</div>
 </div>
 
 <div class="section hidden" id="tracking">
@@ -191,14 +214,25 @@
             <div><h4>Sales</h4><p id="adminRevenue">₹0</p></div>
             <div><h4>Orders</h4><p id="adminOrderCount">0</p></div>
         </div>
-        <h3>Add New Item</h3>
-        <input type="text" id="newItemName" placeholder="Dish Name">
-        <input type="number" id="newItemPrice" placeholder="Price">
-        <select id="newItemCategory">
-            <option value="veg">Veg</option>
-            <option value="non-veg">Non-Veg</option>
-        </select>
-        <button class="add" onclick="addNewItem()">Add Item</button>
+        <div style="margin-bottom: 20px; background: #f0f4f8; padding: 15px; border-radius: 8px; text-align: left; border: 1px solid #d1d9e0;">
+    <label style="color: #333; font-size: 14px;">🎯 <strong>Set Daily Revenue Goal:</strong></label><br>
+    <div style="display: flex; gap: 5px; margin-top: 5px;">
+        <input type="number" id="goalInput" placeholder="Enter amount" style="flex: 1; margin: 0;">
+        <button onclick="setNewGoal()" style="background: #2196f3; color: white; margin: 0;">Set Goal</button>
+    </div>
+    <div id="goalTracker"></div>
+
+</div>
+       <h3>Add New Item</h3>
+<input type="text" id="newItemName" placeholder="Dish Name">
+<input type="text" id="newItemRest" placeholder="Restaurant Name"> <input type="number" id="newItemPrice" placeholder="Price">
+<input type="number" id="newItemServes" placeholder="Serves how many?">
+
+<select id="newItemCategory">
+    <option value="veg">Veg</option>
+    <option value="non-veg">Non-Veg</option>
+</select>
+<button class="add" onclick="addNewItem()">Add Item</button>
         <table id="adminInventoryTable"></table>
         <br>
         <button onclick="logout()">Logout</button>
@@ -206,37 +240,52 @@
     </div>
 </div>
 
+
 <script>
+    let isLoggedIn = false;
 // --- CORE DATA ---
 let defaultMenu = [
-    { name: 'Paneer Tikka', price: 210, type: 'veg' },
-    { name: 'Veg Maharaja Burger', price: 159, type: 'veg' },
-    { name: 'Dal Makhani', price: 180, type: 'veg' },
-    { name: 'Margherita Pizza', price: 299, type: 'veg' },
-    { name: 'Veg Hakka Noodles', price: 140, type: 'veg' },
-    { name: 'Mixed Veg Salad', price: 120, type: 'veg' },
-    { name: 'Paneer Butter Masala', price: 240, type: 'veg' },
-    { name: 'Veg Biryani', price: 190, type: 'veg' },
-    { name: 'Chicken Biryani', price: 249, type: 'non-veg' },
-    { name: 'Butter Chicken', price: 320, type: 'non-veg' },
-    { name: 'Mutton Seekh Kebab', price: 350, type: 'non-veg' },
-    { name: 'Pepperoni Pizza', price: 450, type: 'non-veg' },
-    { name: 'Fish & Chips', price: 280, type: 'non-veg' },
-    { name: 'Egg Fried Rice', price: 160, type: 'non-veg' },
-    { name: 'Chicken Lollipop', price: 220, type: 'non-veg' },
-    { name: 'Grilled Fish', price: 380, type: 'non-veg' }
+    { name: 'Paneer Tikka', price: 210, type: 'veg', serves: 2, restaurant: 'Spice Villa' },
+    { name: 'Veg Maharaja Burger', price: 159, type: 'veg', serves: 1, restaurant: 'Burger Hub' },
+    { name: 'Dal Makhani', price: 180, type: 'veg', serves: 3, restaurant: 'Royal Dal House' },
+    { name: 'Margherita Pizza', price: 299, type: 'veg', serves: 2, restaurant: 'Pizza Planet' },
+    { name: 'Veg Hakka Noodles', price: 140, type: 'veg', serves: 2, restaurant: 'Noodle Corner' },
+    { name: 'Mixed Veg Salad', price: 120, type: 'veg', serves: 2, restaurant: 'Salad Stop' },
+    { name: 'Chicken Biryani', price: 249, type: 'non-veg', serves: 2, restaurant: 'Biryani House' },
+    { name: 'Butter Chicken', price: 320, type: 'non-veg', serves: 3, restaurant: 'Grill Express' },
+    { name: 'Mutton Seekh Kebab', price: 350, type: 'non-veg', serves: 2, restaurant: 'Kebab King' },
+    { name: 'Egg Fried Rice', price: 160, type: 'non-veg', serves: 2, restaurant: 'Wok & Roll' }
 ];
-let menuItems = [];
 
-async function loadMenuFromBackend() {
+let menuItems = JSON.parse(localStorage.getItem("menuItems")) || [...defaultMenu];
+
+
+async function fetchMenu() {
+    if (!isLoggedIn) return;
+
     try {
-        const res = await fetch("http://localhost:5000/api/menu");
-        menuItems = await res.json();
-        renderUserMenu();
+        const res = await fetch('http://localhost:3000/api/menu');
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                menuItems = data;
+            }
+        }
     } catch (err) {
-        alert("Backend not reachable");
+        console.warn("Backend unavailable, using default menu");
     }
+
+    // 🔥 Persist menu
+    localStorage.setItem("menuItems", JSON.stringify(menuItems));
+
+    // 🔥 Render both dashboards
+    renderUserMenu();
+    renderAdminInventory();
 }
+
+
+
+
 let totalRevenue = parseFloat(localStorage.getItem('myRevenue')) || 0;
 let totalOrders = parseInt(localStorage.getItem('myOrders')) || 0;
 let cart = [];
@@ -263,59 +312,111 @@ function showNotice(msg, type = 'info') {
 function showSignup() { showSection("signup"); }
 function showLogin() { showSection("login"); }
 
-function signup() {
+async function signup() {
     const user = document.getElementById("signupUser").value.trim();
     const pass = document.getElementById("signupPass").value.trim();
+
     if (!user || !pass) return showNotice("Please fill all fields", "error");
-    let users = JSON.parse(localStorage.getItem("users")) || {};
-    if (users[user]) return showNotice("Username exists", "error");
-    users[user] = pass;
-    localStorage.setItem("users", JSON.stringify(users));
-    showNotice("Account Created!", "success");
-    setTimeout(showLogin, 1000);
+
+    const res = await fetch('http://localhost:3000/api/signup', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: user, password: pass})
+    });
+    const data = await res.json();
+    if (data.success) {
+        showNotice("Account Created!", "success");
+        setTimeout(showLogin, 1000);
+    } else {
+        showNotice(data.message, "error");
+    }
 }
 
-function login() {
+async function login() {
     const user = document.getElementById("userInput").value.trim();
     const pass = document.getElementById("passInput").value.trim();
-    let users = JSON.parse(localStorage.getItem("users")) || {};
-    if (!users[user] || users[user] !== pass) return showNotice("Invalid Credentials", "error");
+
+    if (!user || !pass) return showNotice("Fill all fields", "error");
+
+    const res = await fetch("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user, password: pass })
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+        showNotice(data.message, "error");
+        return;
+    }
+
+    // ✅ FIX: set role
+    isLoggedIn = true;
+
     userRole = "user";
+    localStorage.setItem("loggedInUser", user);
+
     document.getElementById("navbar").classList.remove("hidden");
     document.getElementById("adminNavBtn").classList.add("hidden");
-    showNotice("Welcome back!", "success");
-    renderUserMenu();
+
+    document.getElementById("login").classList.add("hidden");
+
+    await fetchMenu();
+
+    showSection("menu");
     startPoolTimer();
     getSmartSuggestion();
-    loadMenuFromBackend();
-    showSection("menu");
-    
+
+    showNotice("Welcome back!", "success");
 }
 
 function adminLogin() {
     const pass = document.getElementById("passInput").value.trim();
     if (pass !== "admin123") return showNotice("Wrong Admin Key", "error");
+isLoggedIn = true;
+
     userRole = "admin";
-    document.getElementById("adminNavBtn").classList.remove("hidden");
-    document.getElementById("navbar").classList.remove("hidden");
+
+document.getElementById("navbar").classList.remove("hidden");
+document.getElementById("adminNavBtn").classList.remove("hidden");
+document.getElementById("login").classList.add("hidden");
+
+fetchMenu();
+updateAdminStats();
+updateGoalTracker();
+showSection("admin");
+
+
     showNotice("Admin Mode Active", "success");
-    updateAdminStats();
-    renderAdminInventory();
-    renderUserMenu();
-    showSection("admin");
 }
+
 
 // --- MENU ---
 function renderUserMenu() {
     const tbody = document.getElementById("menuBody");
+    if (!menuItems || menuItems.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='4'>No menu items available</td></tr>";
+        return;
+    }
+
+    document.querySelector("#menuTable thead tr").innerHTML =
+        `<th>Type</th><th>Dish & Restaurant</th><th>Price</th><th>Action</th>`;
+
     tbody.innerHTML = "";
-    menuItems.forEach(item => {
+    menuItems.forEach((item, index) => {
         if (currentFilter === 'all' || item.type === currentFilter) {
             tbody.innerHTML += `<tr>
                 <td>${item.type === 'veg' ? '🟢' : '🔴'}</td>
-                <td>${item.name}</td>
+                <td>
+                    <strong>${item.name}</strong><br>
+                    <small style="color:#2196f3;">📍 ${item.restaurant || 'Local Kitchen'}</small><br>
+                    <small style="color:gray;">Serves: ${item.serves}</small>
+                </td>
                 <td>₹${item.price}</td>
-                <td><button class="add" onclick="addToCart('${item.name}', ${item.price})">Add</button></td>
+                <td>
+                    <input type="number" id="qty-${index}" value="1" min="1" style="width:40px; padding:5px;">
+                    <button class="add" onclick="addWithQty('${item.name}', ${item.price}, ${index})">Add</button>
+                </td>
             </tr>`;
         }
     });
@@ -332,6 +433,12 @@ function filterMenu() {
     });
 }
 
+function getFinalTotal() {
+    const ecoD = document.getElementById("ecoMode")?.checked ? 5 : 0;
+    const poolD = poolUnlocked ? (total * 0.20) : 0;
+    return Math.max(0, total - discount - ecoD - poolD);
+}
+
 function getSmartSuggestion() {
     const hour = new Date().getHours();
     let dish = hour < 11 ? "Mixed Veg Salad" : (hour < 16 ? "Chicken Biryani" : "Butter Chicken");
@@ -344,16 +451,17 @@ function quickAdd(name) {
 
 // --- CART ---
 function addToCart(name, price) {
-    cart.push({ name, price });
-    total += price;
-    if (!poolUnlocked) {
-        poolCount++;
-        if (poolCount >= 4) {
-            poolUnlocked = true;
-            document.getElementById("crowdPoolBox").classList.add("pool-unlocked");
-            document.getElementById("poolStatusText").innerHTML = "✅ <strong>Pool Unlocked!</strong> 20% Applied.";
-        }
+    // Find if the item is already in the cart
+    let existingItem = cart.find(item => item.name === name);
+
+    if (existingItem) {
+        existingItem.quantity += 1;
+    } else {
+        cart.push({ name, price, quantity: 1 });
     }
+
+    total += price;
+    checkPoolStatus(); // Helper to handle the neighborhood pool logic
     showNotice(`${name} added!`, "success");
     updateCart();
 }
@@ -361,17 +469,31 @@ function addToCart(name, price) {
 function updateCart() {
     const list = document.getElementById("cartItems");
     const ecoD = document.getElementById("ecoMode").checked ? 5 : 0;
+    
+    total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
     const poolD = poolUnlocked ? (total * 0.20) : 0;
-    list.innerHTML = cart.map((item, i) => `<li>${item.name} - ₹${item.price} <button class="remove-btn" onclick="removeFromCart(${i})">x</button></li>`).join('');
+    
+    list.innerHTML = cart.map((item, i) => `
+        <li style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
+            <span><strong>${item.name}</strong> x ${item.quantity}</span>
+            <span>₹${(item.price * item.quantity)} 
+                <button class="remove-btn" onclick="removeFromCart(${i})">x</button>
+            </span>
+        </li>
+    `).join('');
+
     document.getElementById("total").textContent = Math.max(0, total - discount - ecoD - poolD).toFixed(2);
+
+    // SAVE CART TO LOCAL STORAGE
+    localStorage.setItem('activeOrderCart', JSON.stringify(cart));
 }
 
 function removeFromCart(i) {
-    total -= cart[i].price;
+    total -= (cart[i].price * cart[i].quantity); // Multiply by quantity!
     cart.splice(i, 1);
     updateCart();
 }
-
 function applyCoupon() {
     let code = document.getElementById("couponInput").value.toUpperCase();
     if (code === "SAVE50") {
@@ -386,19 +508,67 @@ function applyCoupon() {
 
 function clearCart() { cart = []; total = 0; discount = 0; updateCart(); showNotice("Cart Cleared", "info"); }
 
-function placeOrder() {
-    if (cart.length === 0) return showNotice("Cart is empty", "error");
-    const ecoD = document.getElementById("ecoMode").checked ? 5 : 0;
-    const poolD = poolUnlocked ? (total * 0.20) : 0;
-    let final = total - discount - ecoD - poolD;
-    totalRevenue += final;
-    totalOrders++;
-    localStorage.setItem('myRevenue', totalRevenue);
-    localStorage.setItem('myOrders', totalOrders);
-    generateReceipt(ecoD, poolD);
-    showSection("tracking");
-    startTracking();
+async function placeOrder() {
+    console.log("placeOrder called");
+
+    if (cart.length === 0) {
+        showNotice("Cart is empty", "error");
+        return;
+    }
+
+    const finalTotal = getFinalTotal();
+
+    if (finalTotal <= 0) {
+        showNotice("Invalid total amount", "error");
+        return;
+    }
+
+    const orderData = {
+        user: localStorage.getItem("loggedInUser"),
+        items: cart,
+        total: finalTotal,
+        time: new Date().toISOString()
+    };
+
+    try {
+        const res = await fetch("http://localhost:3000/api/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(orderData)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            // 🔥 UPDATE LOCAL REVENUE + ORDERS
+totalRevenue += finalTotal;
+totalOrders += 1;
+
+localStorage.setItem("myRevenue", totalRevenue);
+localStorage.setItem("myOrders", totalOrders);
+
+// 🔥 UPDATE ADMIN UI + GOAL BAR
+updateAdminStats();
+updateGoalTracker(totalRevenue);
+
+showNotice("Order placed successfully!", "success");
+
+cart = [];
+total = 0;
+discount = 0;
+updateCart();
+showSection("tracking");
+startTracking();
+
+        } else {
+            showNotice("Order failed", "error");
+        }
+    } catch (err) {
+        console.error(err);
+        showNotice("Backend not reachable", "error");
+    }
 }
+
 
 function generateReceipt(ecoD, poolD) {
     const itemsDiv = document.getElementById("receiptItems");
@@ -409,15 +579,24 @@ function generateReceipt(ecoD, poolD) {
 
 function startTracking() {
     const statuses = ["Accepted 🛒", "Cooking 👨‍🍳", "On the way 🛵", "Delivered! 😋"];
-    let i = 0;
+    // Check if we are resuming an old order or starting a new one
+    let i = parseInt(localStorage.getItem('lastOrderStage')) || 0; 
+    
     const interval = setInterval(() => {
         document.getElementById("status").textContent = statuses[i];
         document.getElementById("progress-bar").style.width = ((i + 1) * 25) + "%";
-        if (i === 3) { clearInterval(interval); document.getElementById("rewardGame").classList.remove("hidden"); }
+        
+        // Save progress to memory
+        localStorage.setItem('lastOrderStage', i);
+
+        if (i === 3) { 
+            clearInterval(interval); 
+            document.getElementById("rewardGame").classList.remove("hidden");
+            localStorage.removeItem('lastOrderStage'); // Order finished, clear memory
+        }
         i++;
     }, 2000);
 }
-
 function spinWheel() {
     const win = ["FREE COKE 🥤", "₹50 CASHBACK 💸"][Math.floor(Math.random()*2)];
     document.getElementById("wheelResult").innerText = "WON: " + win;
@@ -426,74 +605,235 @@ function spinWheel() {
 }
 
 // --- ADMIN ---
-function updateAdminStats() {
-    document.getElementById("adminRevenue").textContent = "₹" + totalRevenue.toFixed(2);
-    document.getElementById("adminOrderCount").textContent = totalOrders;
-}
+function setNewGoal() {
+    let newGoal = Number(document.getElementById("goalInput").value);
 
-function renderAdminInventory() {
-    const table = document.getElementById("adminInventoryTable");
-    table.innerHTML = `<tr><th>Item</th><th>Price</th><th>Action</th></tr>`;
-    menuItems.forEach((item, index) => {
-        table.innerHTML += `<tr><td>${item.name}</td><td>₹${item.price}</td><td><button class="remove-btn" onclick="deleteMenuItem(${index})">Delete</button></td></tr>`;
-    });
-}
-
-function addNewItem() {
-    const name = document.getElementById("newItemName").value;
-    const price = parseInt(document.getElementById("newItemPrice").value);
-    const type = document.getElementById("newItemCategory").value;
-    if (name && price) {
-        menuItems.push({ name, price, type });
-        localStorage.setItem('myFoodMenu', JSON.stringify(menuItems));
-        renderAdminInventory(); renderUserMenu();
-        showNotice("Item added to menu", "success");
+    if (newGoal > 0) {
+        localStorage.setItem("dailyRevenueGoal", newGoal);
+        updateGoalTracker(totalRevenue);
+        showNotice("New Daily Goal Set!", "success");
+        document.getElementById("goalInput").value = "";
+    } else {
+        showNotice("Please enter a valid amount", "error");
     }
 }
 
+
+function updateGoalTracker(currentRevenue = totalRevenue) {
+    const goal = Number(localStorage.getItem("dailyRevenueGoal")) || 0;
+    const tracker = document.getElementById("goalTracker");
+
+    if (!goal || goal <= 0) {
+        tracker.innerHTML = "<p>No goal set.</p>";
+        return;
+    }
+
+    let percent = Math.min((currentRevenue / goal) * 100, 100);
+
+    tracker.innerHTML = `
+        <div style="background:#eee; height:15px; border-radius:8px; overflow:hidden;">
+            <div style="height:100%; width:${percent}%; background:#4caf50;"></div>
+        </div>
+        <p>₹${currentRevenue} / ₹${goal}</p>
+    `;
+}
+
+
+async function updateAdminStats() {
+    const res = await fetch('http://localhost:3000/api/admin/stats');
+    const data = await res.json();
+
+   totalRevenue = data.revenue;
+totalOrders = data.orders;
+
+localStorage.setItem("myRevenue", totalRevenue);
+localStorage.setItem("myOrders", totalOrders);
+
+document.getElementById("adminRevenue").textContent =
+    "₹" + totalRevenue.toFixed(2);
+
+document.getElementById("adminOrderCount").textContent =
+    totalOrders;
+
+updateGoalTracker(totalRevenue);
+
+}
+
+
+
+function renderAdminInventory() {
+    const table = document.getElementById("adminInventoryTable");
+    table.innerHTML = `<tr><th>Item</th><th>Price</th><th>Serves</th><th>Action</th></tr>`;
+
+    menuItems.forEach((item, index) => {
+        table.innerHTML += `
+            <tr>
+                <td>${item.name}</td>
+                <td>₹${item.price}</td>
+                <td>${item.serves || 1} pax</td>
+                <td><button class="remove-btn" onclick="deleteMenuItem(${index})">Delete</button></td>
+            </tr>`;
+    });
+}
+
+
+async function addNewItem() {
+    const name = document.getElementById("newItemName").value.trim();
+    const restaurant = document.getElementById("newItemRest").value.trim();
+    const price = Number(document.getElementById("newItemPrice").value);
+    const serves = Number(document.getElementById("newItemServes").value);
+    const type = document.getElementById("newItemCategory").value;
+
+    if (!name || !price || !serves) {
+        showNotice("Fill all item fields", "error");
+        return;
+    }
+
+    const newItem = {
+        name,
+        restaurant,
+        price,
+        serves,
+        type
+    };
+
+    try {
+        const res = await fetch("http://localhost:3000/api/menu/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newItem)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            showNotice("Item added successfully", "success");
+
+            // reload menu for BOTH admin & user
+            await fetchMenu();
+
+            // clear inputs
+            document.getElementById("newItemName").value = "";
+            document.getElementById("newItemRest").value = "";
+            document.getElementById("newItemPrice").value = "";
+            document.getElementById("newItemServes").value = "";
+        }
+    } catch (err) {
+        console.error(err);
+        showNotice("Failed to add item", "error");
+    }
+}
+
+
 function deleteMenuItem(index) {
     menuItems.splice(index, 1);
-    localStorage.setItem('myFoodMenu', JSON.stringify(menuItems));
-    renderAdminInventory(); renderUserMenu();
+    localStorage.setItem("menuItems", JSON.stringify(menuItems));
+    renderAdminInventory();
+    renderUserMenu();
     showNotice("Item Deleted", "info");
 }
 
-function resetSystem() {
-    // Clear relevant localStorage items
-    localStorage.removeItem('myFoodMenu'); // Remove custom menu
-    localStorage.removeItem('myRevenue');
-    localStorage.removeItem('myOrders');
-    localStorage.removeItem('users');
 
-    // Reset in-memory variables
-    menuItems = [...defaultMenu]; // Reset menu to defaults
-    totalRevenue = 0;
-    totalOrders = 0;
-    cart = [];
-    total = 0;
-    discount = 0;
-    poolUnlocked = false;
-    poolCount = 2;
+async function resetSystem() {
+    try {
+        const res = await fetch("http://localhost:3000/api/reset", {
+            method: "DELETE"
+        });
 
-    // Update UI
-    renderAdminInventory();
-    updateAdminStats();
-    renderUserMenu();
+        const data = await res.json();
 
-    // Reset pool UI
-    document.getElementById("crowdPoolBox").classList.remove("pool-unlocked");
-    document.getElementById("poolStatusText").innerHTML = `<strong>${poolCount} people</strong> nearby! Order to unlock <strong>20% OFF</strong>.`;
+        if (!data.success) {
+            showNotice("Reset failed", "error");
+            return;
+        }
 
-    showNotice("System Reset Successful", "info");
+        // 🔥 CLEAR FRONTEND STATE
+        menuItems = [...defaultMenu];
+        cart = [];
+        total = 0;
+        discount = 0;
+        totalRevenue = 0;
+        totalOrders = 0;
+
+        // 🔥 CLEAR LOCAL STORAGE (ONLY SYSTEM DATA)
+        localStorage.removeItem("menuItems");
+        localStorage.removeItem("myRevenue");
+        localStorage.removeItem("myOrders");
+        localStorage.removeItem("dailyRevenueGoal");
+
+        // 🔥 RE-RENDER UI
+        renderUserMenu();
+        renderAdminInventory();
+        updateGoalTracker(0);
+
+        document.getElementById("adminRevenue").textContent = "₹0";
+        document.getElementById("adminOrderCount").textContent = "0";
+
+        showNotice("Factory Reset Completed", "success");
+
+    } catch (err) {
+        console.error(err);
+        showNotice("Reset error", "error");
+    }
 }
-
 
 // --- UTILS ---
-function showSection(id) {
-    if (userRole === 'guest' && id !== 'login' && id !== 'signup') return showSection('login');
-    document.querySelectorAll(".section").forEach(sec => sec.classList.add("hidden"));
-    document.getElementById(id).classList.remove("hidden");
+// --- NEW LOGIC FUNCTIONS ---
+
+function checkPoolStatus() {
+    if (!poolUnlocked) {
+        poolCount++;
+        if (poolCount >= 4) {
+            poolUnlocked = true;
+            const poolBox = document.getElementById("crowdPoolBox");
+            if(poolBox) {
+                poolBox.classList.add("pool-unlocked");
+                document.getElementById("poolStatusText").innerHTML = "✅ <strong>Pool Unlocked!</strong> 20% Discount applied to your order.";
+            }
+            showNotice("Neighborhood Pool Unlocked! 20% OFF", "success");
+        }
+    }
 }
+
+function addBulkToCart(name, price, units) {
+    // Check if item already in cart to group them
+    let existingItem = cart.find(item => item.name === name);
+
+    if (existingItem) {
+        existingItem.quantity += units;
+    } else {
+        cart.push({ name, price, quantity: units });
+    }
+
+    total += (price * units);
+    checkPoolStatus();
+    showNotice(`Added ${units} units of ${name}!`, "success");
+    updateCart();
+}
+
+function addWithQty(name, price, index) {
+    const qtyInput = document.getElementById(`qty-${index}`);
+    const quantity = parseInt(qtyInput.value);
+
+    if (quantity > 0) {
+        // We reuse the addBulkToCart logic you just added!
+        addBulkToCart(name, price, quantity);
+        
+        // Optional: Reset input back to 1 after adding
+        qtyInput.value = 1; 
+    } else {
+        showNotice("Please enter a valid quantity", "error");
+    }
+}
+function showSection(sectionId) {
+    document.querySelectorAll(".section").forEach(sec => {
+        sec.classList.add("hidden");
+    });
+
+    const target = document.getElementById(sectionId);
+    if (target) target.classList.remove("hidden");
+}
+
 function startPoolTimer() {
     let timeLeft = 300;
     if (poolTimerInterval) clearInterval(poolTimerInterval);
@@ -505,7 +845,17 @@ function startPoolTimer() {
         timeLeft--;
     }, 1000);
 }
-function logout() { location.reload(); }
+function logout() {
+    localStorage.clear();
+
+    document.getElementById("navbar").classList.add("hidden");
+    document.getElementById("adminNavBtn").classList.add("hidden");
+
+    showSection("login");
+    showNotice("Logged out successfully", "success");
+}
+
+
 function toggleDarkMode() { document.body.classList.toggle("dark-mode"); }
 function findBestMeal() {
     let budget = parseInt(document.getElementById("budgetInput").value);
@@ -518,6 +868,75 @@ function findBestMeal() {
         res.innerHTML = `⭐ Try <b>${best.name}</b> (₹${best.price})`;
     }
 }
+function findGroupMeals() {
+    const totalBudget = Number(document.getElementById("groupBudget").value);
+    const members = Number(document.getElementById("groupMembers").value);
+    const resultDiv = document.getElementById("groupResult");
+
+    if (!totalBudget || !members || members <= 0) {
+        resultDiv.innerHTML = "Please enter valid budget and members.";
+        return;
+    }
+
+    let remainingBudget = totalBudget;
+    let selectedItems = [];
+    let i = 0;
+
+    // Sort menu items from cheapest to expensive
+    const sortedMenu = [...menuItems].sort((a, b) => a.price - b.price);
+
+    // Keep adding items until budget is nearly exhausted
+    while (remainingBudget >= sortedMenu[0].price) {
+        const item = sortedMenu[i % sortedMenu.length];
+
+        if (remainingBudget >= item.price) {
+            selectedItems.push({
+                name: item.name,
+                price: item.price,
+                quantity: 1
+            });
+            remainingBudget -= item.price;
+        }
+
+        i++;
+    }
+
+    // Display result
+    let html = `<strong>Group Meal Plan:</strong><br>`;
+    selectedItems.forEach(it => {
+        html += `• ${it.name} - ₹${it.price}<br>`;
+    });
+
+    html += `<br><strong>Total Spent:</strong> ₹${totalBudget - remainingBudget}`;
+    html += `<br><strong>Remaining:</strong> ₹${remainingBudget}`;
+    html += `<br><button onclick='addComboToCart(${JSON.stringify(selectedItems)})'>Add All to Cart</button>`;
+
+    resultDiv.innerHTML = html;
+}
+
+// Updated helper to handle quantities
+function addComboToCart(items) {
+    items.forEach(item => {
+        // We use addBulkToCart to handle the specific quantities found by the planner
+        addBulkToCart(item.name, item.price, item.quantity);
+    });
+    showNotice("Party Pack added!", "success");
+    document.getElementById("groupResult").querySelector("button").addEventListener("click", () => {
+    addComboToCart(selectedItems);
+});
+
+}
+
+// --- AUTO-RESUME LOGIC ---
+window.onload = () => {
+    // Always start at login screen
+    document.getElementById("navbar").classList.add("hidden");
+    document.getElementById("adminNavBtn").classList.add("hidden");
+
+    showSection("login");
+};
+
+
 </script>
 </body>
 </html>
